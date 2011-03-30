@@ -1,0 +1,5 @@
+{if(isset($httpErrorOccured))}<div class="full">
+    <h1>{$errorName}</h1>
+    <p>{$errorDescription}</p>
+</div>
+{/if}
