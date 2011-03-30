@@ -46,7 +46,7 @@
             $url_param  = false;
             $dir        = VIEW_PATH . Option::val('request_type') . '/';
             $page       = '/';
-            $file       = '';
+            $file       = 'index';
             $params     = array();
             $query      = array();
             $query_full = explode('?', $_SERVER['REQUEST_URI']);
@@ -54,16 +54,18 @@
             
             foreach (explode('/', trim(str_replace($this->pathFromRoot,'',$query_full[0]),'/')) as $level => $call) {
 
+                $call = trim($call);
+                
+                if (empty($call)) continue;
+
                 if (file_exists($dir . $call . '.xml')) {
                 
                     $file    = $call;
-                    $page   .= $call;
                     $query[] = array($call,'file');
                 
                 }
                 elseif (is_dir($dir . $call.'/')) {
                     
-                    $file     = 'index';
                     $page    .= $call.'/';
                     $dir     .= $call.'/';
                     $query[]  = array($call,'dir');
@@ -79,6 +81,8 @@
             
             }
             
+            $page .= $file;
+            
             $this->query = array(
                 'url_param' => $url_param,
                 'dir'       => $dir,
@@ -89,13 +93,8 @@
                 'params'    => $params
             );
             
-            var_dump($this->query);die();
-            
             // set constant page
-            #$file = '/' . trim(str_replace($this->pathFromRoot, '', $query[0]),'/');
-            #if ($this->file == '/') $this->file = '/index';
-            Option::set('page', $file);
-            
+            Option::set('page', $page);
             
             // parse parameters
             $this->parseParameters();
@@ -160,9 +159,23 @@
         
         }
         
+        /**
+         * ::getQuery()
+         * returns the whole query parser result
+         */
         public function getQuery() {
         
             return $this->query;
+            
+        }
+        
+        /**
+         * ::getOpt()
+         * returns one single option of the query parser result
+         */
+        public function getOpt($opt) {
+        
+            return $this->query[$opt];
             
         }
     

@@ -51,7 +51,7 @@
             
             // build controller
             
-            $controller_name = 'Controller_' . strtolower(str_replace('/', '_', trim($queryparser->getFile(),'/')));
+            $controller_name = 'Controller_' . strtolower(str_replace('/', '_', trim($queryparser->getOpt('file'),'/')));
 
             if (Classloader::getFileName($controller_name,true,true)) {
 
@@ -63,8 +63,10 @@
                 
             }
             
+            if (!Option::val('paramsInUri') && $queryparser->getOpt('url_param')) throw new HttpError(404);
+            
             // parse template (finally)
-            $this->output = $content->get($queryparser->getFile());
+            $this->output = $content->get($queryparser->getOpt('page'));
 
         }
         

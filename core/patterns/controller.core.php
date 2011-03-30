@@ -25,7 +25,7 @@
     
         final public function __construct() {
         
-            if ($this->_expectStatementInUri) $this->prepareRequestStatementInUri();
+            if (isset($this->_expectStatementInUri) && $this->_expectStatementInUri == true) $this->prepareRequestStatementInUri();
         
             global $_VAR;
             $this->_vars = $_VAR;
@@ -45,7 +45,7 @@
         
             if (Option::val('header_enable_urlget')) {
             
-                    Option::set('requestStatementInUri', true);
+                    Option::set('paramsInUri', true);
                     return true;
 
             }

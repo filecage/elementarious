@@ -67,7 +67,7 @@
             $this->parseXMLElement($this->domXML->getElementsByTagName('*'),true);
 
             $cache = new Template_Cachebuilder('.' . md5($file), CACHE_PATH . 'tpl/');
-            $cache->_write(md5($this->sourceFile) . "\n" . $this->buffer);
+            $cache->_write(md5($this->sourceFile) . Option::val('configHash') . "\n" . $this->buffer);
 
         }
         
@@ -84,7 +84,7 @@
                 
                     $buffer = '';
                     
-                    if (Classloader::getFileName('Markup_Extension_' . strtolower($item->nodeName),true,true) !== false && Option::val('html_enable_markupextension')) {
+                    if (Classloader::getFileName('Markup_Extension_' . strtolower($item->nodeName),true,true) !== false && Option::val('html_markupextension_enabled')) {
                     
                         if ($item->hasAttributes()) {
                         
@@ -254,16 +254,15 @@
 
             $content = $this->getCachedFile($file);
             if (!$content) return false;
-
-            if (md5($this->sourceFile) == $content['hash']) {
+            
+            if (md5($this->sourceFile) . Option::val('configHash') == $content['hash']) {
                 $this->buffer = $content['tpl'];
                 return true;
             }
             else {
                 return false;
             }
-            
-        
+
         }
         
         /**

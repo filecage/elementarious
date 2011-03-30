@@ -38,6 +38,7 @@
             
                 include_once(CONFIG_PATH . '/config.php');
                 self::$config = $config;
+                self::$config['configHash'] = md5(implode(';', $config));
                 self::$loaded = true;
                 
                 if (!is_array(self::$config)) self::$config = array();

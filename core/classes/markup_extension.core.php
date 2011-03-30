@@ -26,18 +26,6 @@
         protected $_writeMode = 'w';
     
     }
-     
-    class Markup_Extensioner {
-    
-        public function __construct() {}
-        
-        static public function isExtension($markup_element) {
-        
-            return Classloader::getFileName('Markup_Extension_' . $markup_element,true,true);
-        
-        }
-    
-    }
     
     interface Markup_Extension_Interface {
     
