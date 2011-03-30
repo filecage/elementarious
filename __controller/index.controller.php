@@ -2,13 +2,12 @@
 
     class Controller_index extends Controller {
     
-        protected $_pageTitle   = 'PHP, (X)HTML, CSS, JavaScript';
+        protected $_pageTitle   = 'Example Page Title';
         
         protected function work() {
         
-            parent::set('mutter','Schraube');
-            parent::set('arr','Strubbelwubbel');
-            $this->set('foo',array('bums','bams','bims'));
+            parent::set('example_var','Example Value');
+            parent::set('array',array('foo','bar'));
         
         }
     
