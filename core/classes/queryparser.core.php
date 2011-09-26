@@ -58,13 +58,13 @@
                 
                 if (empty($call)) continue;
 
-                if (file_exists($dir . $call . '.xml')) {
+                if (file_exists($dir . $call . '.xml')&&$url_param==false) {
                 
                     $file    = $call;
                     $query[] = array($call,'file');
                 
                 }
-                elseif (is_dir($dir . $call.'/')) {
+                elseif (is_dir($dir . $call.'/')&&$url_param==false) {
                     
                     $page    .= $call.'/';
                     $dir     .= $call.'/';

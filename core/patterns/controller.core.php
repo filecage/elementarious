@@ -30,8 +30,29 @@
             global $_VAR;
             $this->_vars = $_VAR;
         
+            if ($this->checkAccess() === false) throw new HttpError(403);
+            if ($this->redirect() != false) {
+                if (isText($this->redirect())) {
+                    Header('Location: ' . dirname($_SERVER['PHP_SELF']) . $this->redirect());
+                }
+                else {
+                    Header('Location: ' . dirname($_SERVER['PHP_SELF']));
+                }
+            }
+        
             $this->work();
+            $this->assignVariables();
             if (isset($this->_pageTitle)) Templatevars::set('_pageTitle', $this->_pageTitle);
+        
+        }
+        
+        final protected function setAll($arr) {
+        
+            if (!is_array($arr)) return false;
+            
+            foreach ($arr as $name => $val) {
+                $this->set($name, $val);
+            }
         
         }
         
@@ -57,7 +78,10 @@
         
         }
         
+        protected function redirect() { return false; }
+        protected function checkAccess() { return true; }
         protected function work() {}
+        protected function assignVariables() {}
     
     }
     

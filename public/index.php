@@ -45,8 +45,11 @@
     // go trough some options which may be turned on (or off)
     if (Option::val('compression_enable_gzip')) ob_start('ob_gzhandler');
     if (Option::val('header_send_utf8')) Header('Content-type: text/html;charset=utf-8;');
+    if (Option::val('header_allow_crossdomain_xhr')) Header('Access-Control-Allow-Origin: *');
     if (Option::val('debug')) error_reporting(E_ALL);
     else error_reporting(E_NONE);
+    if (Option::val('mysql_allow')) Database::init();
+    else Option::set('mysql_credentials',null,true);
     
     
     // start trying to create the site
@@ -72,6 +75,6 @@
         
     }
     
-    if (Option::val('debug')) echo '<div style="position:absolute;top:0px;left:0px;width:160px;height:20px;background:#000;color:#fff;">debug time ' . round(microtime(true)-$time,6). 's</div>';
+    if (Option::val('debug')&&Option::val('debug_show_info')) echo '<div style="position:absolute;top:0px;left:0px;width:160px;height:20px;background:#000;color:#fff;">debug time ' . round(microtime(true)-$time,6). 's</div>';
     
  ?>

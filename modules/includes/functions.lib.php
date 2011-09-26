@@ -22,6 +22,7 @@
      
      /**
       * objectIntoArray()
+      *
       * converts an object into an array
       * usefull when using SimpleXMLElement
       */
@@ -51,6 +52,7 @@
     
     /**
      * strpos_all()
+     *
      * returns an array with ALL positions of $needle found in $haystack
      */
     function strpos_all ($haystack, $needle, $case=true) {
@@ -73,6 +75,7 @@
     
     /**
      * lowest()
+     *
      * returns the lowest value from given values
      */
     function lowest() {
@@ -85,5 +88,66 @@
         sort($args);
         
         return $args[0];
+    
+    }
+    
+    /**
+     * isText()
+     *
+     * checks if text is set and not empty, if trim is set to true (default), trims before it checks
+     */
+    function isText($text='', $trim=true) {
+    
+        if (!is_string($text)) return false;
+    
+        if ($trim) $text = trim($text);
+        return !empty($text);
+        
+    }
+    
+    /**
+     * isDatetimeArray()
+     *
+     * checks if array is valid for datetime conversion
+     */
+    function isTimeArray($array,$datetime=true) {
+    
+        if (!is_array($array)) return false;
+        
+        $required = array('year','month','day');
+        $return   = true;
+        if ($datetime) $required = array_merge($required,array('hour','minute','second'));
+    
+        foreach ($required as $field) {
+            if (!isset($array[$field])) $return = false;
+        }
+        
+        return $return;
+        
+    }
+    
+    /**
+    * check_email_address()
+    *
+    * checks whether an email address is correct or not
+    */
+    function check_email($email) {
+
+        return filter_var($email, FILTER_VALIDATE_EMAIL);
+    
+    }
+    
+    /**
+     * val_to_array()
+     *
+     * adds a numeric value to all elements of an array
+     */
+    function val_to_array($array, $val) {
+    
+        foreach ($array as $key => $orig_val) {
+            $array[$key] = $orig_val + $val;
+        }
+        
+        return $array;
     
     }

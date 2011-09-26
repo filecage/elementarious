@@ -79,7 +79,7 @@
          * (this might take a few secs but it should usually only happen in your dev-environment
          */
         static public function getFileName($class,$allowfail=false,$nosearch=false) {
-        global $time;
+
             $class = strtolower($class);
             
             if (isset(self::$cache[$class])) return self::$cache[$class];
@@ -90,11 +90,11 @@
             if (isset(self::$cache[$class])) return self::$cache[$class];
             
             if ($allowfail) return false;
-            throw new Exception ('Classloader called to load unexisting or wrong-stored (not in the application directory) class ' . $class . '.');
+            throw new Exception ('Classloader called to load unexisting or wrong-stored (not in the application directory) class ' . $class . '. Deleting the cache file might solve this problem.');
         
         }
         
-        /*
+        /**
          * ::search()
          * used to scan the whole root-directory for class definitions.
          * writes them into a json-decoded file in the cache-directory for later use

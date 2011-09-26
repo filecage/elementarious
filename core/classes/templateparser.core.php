@@ -45,7 +45,7 @@
         
         /**
          * ::get()
-         * checks wether a template already exists as cache file and if it's the newest version
+         * checks whether a template already exists as cache file and if it's the newest version
          */
         public function get($file) {
         
@@ -53,7 +53,7 @@
             $this->sourceFile = $this->getFile($file);
             
             if (!$this->parseCachedFile($file)) $this->parse($file);
-            return $this->callPHP(Option::val('html_doctype') . $this->buffer);
+            return (Option::val('request_type')=='html') ? $this->callPHP(Option::val('html_doctype') . $this->buffer) : $this->callPHP($this->buffer);
         
         }
         
@@ -62,7 +62,7 @@
          * manages the parse-proccess, i.e. creating an xml object and parsing it
          */
         public function parse($file) {
-        
+
             $this->domXML->loadXML($this->parseVars($this->sourceFile));
             $this->parseXMLElement($this->domXML->getElementsByTagName('*'),true);
 
@@ -154,24 +154,68 @@
         private function parseVars($tpl) {
 
             $continue = false;
+            $literal  = array();
             
-            // find all occurencies of foreach and if in template
-            $if      = strpos_all($tpl, '{if(' , false);
-            $if      = array_merge($if, strpos_all($tpl, '{elseif(' , false));
+            // if we got any commented areas, delete them before parsing
+            $tpl = preg_replace('/{\*(.*)\*}/si', '', $tpl);
+            
+            // if we got any literal areas, filter them, replace them with a unique string and replace them again later
+            preg_match_all('/{literal}(.*){\/literal}/i', $tpl, $literal_match);
+            foreach ($literal_match[1] as $literal_str) {
+                $id = '[literal_#'.sha1(microtime(true).$literal_str).md5(uniqid()).'/]';
+                $literal[$id] = $literal_str;
+                $tpl = str_ireplace('{literal}'.$literal_str.'{/literal}', $id, $tpl);
+            }
+            
+            // find all occurencies of foreach in template and replace variable names
             $foreach = strpos_all($tpl, '{foreach(' , false);
             
             foreach ($foreach as $char) {
                 $start    = strpos($tpl, '$', $char)+1;
                 $length   = strpos($tpl,' ',$start)-$start;
                 $var_name = substr($tpl, $start, $length);
-                $tpl      = substr_replace($tpl, $var_name.'\']', $start, $length);
+                $tpl      = substr_replace($tpl, str_replace('.','\'][\'', $var_name).'\']', $start, $length);
             }
-            foreach ($if as $char) {
-                $start    = strpos($tpl, '$', $char)+1;
-                $length   = lowest(strpos($tpl,')',$start),strpos($tpl,' ',$start),strpos($tpl,'=',$start),strpos($tpl,'!',$start))-$start;
-                $var_name = substr($tpl, $start, $length);
-                $tpl      = substr_replace($tpl, '$vars[\''.$var_name.'\']', $start-1, $length+1);
+
+            
+            // find all occurencies of if and elseif in template and replace variable names
+            $if = array_merge(strpos_all($tpl, '{if(' , false), strpos_all($tpl, '{elseif(' , false));
+            sort($if);
+            $if = array_reverse($if);
+            
+            foreach ($if as $num => $char) {
+            
+                    unset($if[$num]);
+            
+                    $start    = strpos($tpl, '$', $char)+1;
+                    $end      = strpos($tpl, ')}', $char)+1;
+                    $length   = lowest(strpos($tpl,')',$start),strpos($tpl,' ',$start),strpos($tpl,'=',$start),strpos($tpl,'!',$start),strpos($tpl,'<',$start),strpos($tpl,'>',$start))-$start;
+                    
+                    if ($start > $end) {
+                        
+                        $start    = strpos($tpl, '%', $char);
+                        $length   = lowest(strpos($tpl,')',$start),strpos($tpl,' ',$start),strpos($tpl,'=',$start),strpos($tpl,'!',$start))-$start;
+                        $orig_var = substr($tpl, $start, $length-1);
+                        $var_name = '$' . trim($orig_var,'%');
+                        
+                        if (preg_match('/(\.)/', $orig_var, $match)) {
+                            $var_is_array = true;
+                            $var_name = str_replace('.', '[\'', $var_name);
+                        }
+                        
+                        $var_name .= ($var_is_array) ? '\']' : '';
+                        $tpl      = substr_replace($tpl, $var_name, $start, $length);
+                        
+                        
+                    }
+                    else {
+                    
+                        $var_name = substr($tpl, $start, $length);
+                        $tpl      = substr_replace($tpl, '$vars[\''.str_replace('.','\'][\'', $var_name).'\']', $start-1, $length+1);
+                    
+                    }
             }
+            
             
             // replace foreach and if
             $tpl = str_ireplace('{if(', '&lt;?php if(', $tpl);
@@ -183,6 +227,22 @@
             $tpl = str_replace('{/foreach}','<?php%%ENDBRACKET%%?>', $tpl);
             $tpl = str_replace('{/if}','<?php%%ENDBRACKET%%?>', $tpl);
             
+            // replace all dots with a new array-level
+            preg_match_all('/{\$(.+)}/', $tpl, $array_match);
+            foreach ($array_match as $occurence) {
+                if (is_string($occurence) && strstr($occurence, '.')===false) continue; // do not proceed if theres no dot
+                $modified_occurence = str_replace('.', '\'][\'', $occurence);
+                $tpl = str_replace($occurence, $modified_occurence, $tpl);
+            }
+
+            preg_match_all('/{\%([^%]+)\%}/', $tpl, $array_match);
+
+            foreach ($array_match[0] as $occurence) {
+                $occurence = $occurence;
+                if (is_string($occurence) && strstr($occurence, '.')===false) continue; // do not proceed if theres no dot
+                $modified_occurence = str_replace('.', '[\'', str_replace('%}','',$occurence));
+                $tpl = str_replace($occurence, $modified_occurence.'\']%}', $tpl);
+            }
             
             // this is a foreach-variable
             $tpl = str_replace('{%', '&lt;?php echo $', $tpl);
@@ -194,7 +254,12 @@
             $tpl = str_replace('}', '\']; ?&gt;', $tpl);
             $tpl = str_replace('<?php%%ENDBRACKET%%?>', '&lt;?php } ?&gt;', $tpl);
             $tpl = str_replace('<?php%%ENDBRACKET_SINGLE%%?>', '}', $tpl);
-
+            
+            // transform the literal strings back after we finished all the other parsing blocks
+            foreach ($literal as $id => $str) {
+                $tpl = str_replace($id, $str, $tpl);
+            }
+            
             return $tpl;
             
         }

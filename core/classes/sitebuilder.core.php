@@ -42,19 +42,21 @@
          * the actual without-me-works-nothing
          * called to process the whole request, instancing the templateparser and the controller
          */
-        public function create() {
+        public function create($page='') {
         
             // parse query
             $content     = new Templateparser();
             $queryparser = new Queryparser();
             $queryparser->parse();
             
+            if ($page=='') $page = $queryparser->getOpt('page');
+
             // build controller
             
-            $controller_name = 'Controller_' . strtolower(str_replace('/', '_', trim($queryparser->getOpt('file'),'/')));
+            $controller_name = 'Controller_' . strtolower(str_replace('/', '_', trim($page,'/')));
 
             if (Classloader::getFileName($controller_name,true,true)) {
-
+            
                 $controller = new $controller_name;
                 $reflection = new ReflectionClass($controller_name);
                 
@@ -63,10 +65,10 @@
                 
             }
             
-            if (!Option::val('paramsInUri') && $queryparser->getOpt('url_param')) throw new HttpError(404);
+            if (!Option::val('paramsInUri') && $queryparser->getOpt('url_param') && $page != '/error/http') throw new HttpError(404);
             
             // parse template (finally)
-            $this->output = $content->get($queryparser->getOpt('page'));
+            $this->output = $content->get($page);
 
         }
         

@@ -25,10 +25,13 @@
 
         public function get($args=null) {
         
-            $return = '<a href="' . dirname($_SERVER['PHP_SELF']) . '/' . $args['for'] . '" id="' . $args['id'].'" class="img';
-            if ('/'.$args['for'] == Option::val('page')) $return .= ' active';
+            $href = trim($args['for'],'/');
+        
+            $return = '<a href="' . dirname($_SERVER['PHP_SELF']) . '/' . $href . '"';
+            if ('/'.$href == Option::val('page')) $return .= ' class="active"';
+            elseif ($args['for'] == '/' && Option::val('page') == '/index') $return .= ' class="active"';
             
-            return $return . '">';
+            return $return . '>';
         
         }
         
@@ -43,7 +46,17 @@
         
             $this->_endTag = '</a>';
             $this->_endTag .= (isset($args['end'])) ? '' : '&nbsp;';
-            return '&nbsp;<a href="' . dirname($_SERVER['PHP_SELF']) . $args['to'] . '">';
+            
+            $tag = '&nbsp;<a href="' . dirname($_SERVER['PHP_SELF']) . '/' . $args['to'] . '"';
+            
+            if (isset($args['click']) && isText($args['click'])) {
+                $tag .= ' onclick="' . $args['click'].';';
+                if ($args['ret_false']) $tag .= 'return false;';
+                $tag .= '"';
+            }
+            
+            
+            return $tag . '>';
             
         }
         

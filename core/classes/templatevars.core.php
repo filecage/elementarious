@@ -66,7 +66,7 @@
         }
         
         static public function clear() {
-        
+
             self::init();
         
         }

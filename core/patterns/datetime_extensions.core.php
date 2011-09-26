@@ -18,40 +18,23 @@
      * along with this program.  If not, see <http://www.gnu.org/licenses/>.
      * 
      */
-     
-     
-    class HttpError extends Exception {
+
+    class DateTime_de_DE extends DateTime {
     
-        private $num;
-
-        public function __construct($num, $file=null) {
+        public function format($format) {
         
-            $this->num = $num;
-
-            $info = Option::val('error_http_messages');
-            $info = $info[$num];
+            $str = parent::format($format);
+        
+            $english = array('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday');
+            $german  = array('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag');
+            $str     = str_replace($english, $german, $str);
             
-            //Templatevars::clear();
-            Templatevars::set(
-                array(
-                    '_pageTitle' => $info['name'],
-                    'httpErrorOccured' => true,
-                    'errorNum' => $num,
-                    'errorName' => $info['name'],
-                    'errorDescription' => $info['description']
-                )
-            );
+            $english = array('January','February','March','April','May','June','July','August','September','October','December');
+            $german = array('Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','Dezember');
+            $str     = str_replace($english, $german, $str);
             
-            new HttpErrorController();
-            
+            return $str;
         }
         
-        public function getNum() {
-            return $this->num;
-        }
-    
     }
-    
-    class HttpErrorController extends Controller {}
-    
 ?>

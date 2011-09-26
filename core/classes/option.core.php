@@ -61,13 +61,13 @@
         /**
          * ::set()
          * sets a value for an option
-         * if the setting already appears in the config, it throws an exception
+         * if the setting already appears in the config, it throws an exception (as long as $ignoreConfigExistance is false)
          */
-        static public function set($name,$val) {
+        static public function set($name,$val,$ignoreConfigExistance=false) {
         
             if (!self::$loaded) self::load();
             
-            if (isset(self::$config[$name])) {
+            if (isset(self::$config[$name]) && !$ignoreConfigExistance) {
                 throw new Exception('Can not redeclare config option "' . $name . '"');
                 return false;
             }
