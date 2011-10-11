@@ -46,10 +46,13 @@
     if (Option::val('compression_enable_gzip')) ob_start('ob_gzhandler');
     if (Option::val('header_send_utf8')) Header('Content-type: text/html;charset=utf-8;');
     if (Option::val('header_allow_crossdomain_xhr')) Header('Access-Control-Allow-Origin: *');
+    if (Option::val('header_start_session')) session_start();
     if (Option::val('debug')) error_reporting(E_ALL);
     else error_reporting(E_NONE);
     if (Option::val('mysql_allow')) Database::init();
     else Option::set('mysql_credentials',null,true);
+    $path = str_replace('\\', '/', dirname($_SERVER['PHP_SELF']));
+    Option::set('path', $path == '/' ? '' : $path);
     
     
     // start trying to create the site
@@ -68,13 +71,24 @@
         die($error->get('/error/http'));
         
     }
+    // catch template syntax errors
+    catch (TemplateSyntaxError $e) {
+    
+        $error = new Templateparser();
+        die($error->get('/error/syntaxerror'));
+    
+    }
     // catch possible thrown exceptions
     catch (Exception $e) {
         
-        die('Exception: '. $e->getMessage());
+        echo '<h1>Exception</h1><h2>Message</h2>'. $e->getMessage() . '<h2>Stack trace</h2><table cellpadding="3px" border="2px"><tr><td>&nbsp;</td><td>Function</td><td>File</td><td>Line</td></tr>';
+        foreach ($e->getTrace() as $key => $trace) {
+            echo '<tr><td>#'.$key.'</td><td>'.$trace['function'].'</td><td>'.$trace['file'].'</td><td>'.$trace['line'].'</td></tr>';
+        }
+        die('</table><p>' . date('r') . '</p>');
         
     }
     
-    if (Option::val('debug')&&Option::val('debug_show_info')) echo '<div style="position:absolute;top:0px;left:0px;width:160px;height:20px;background:#000;color:#fff;">debug time ' . round(microtime(true)-$time,6). 's</div>';
+    if (Option::val('debug')&&Option::val('debug_show_info')&&Option::val('request_type')=='html') echo '<div style="position:absolute;top:0px;left:0px;width:160px;height:20px;background:#000;color:#fff;">debug time ' . round(microtime(true)-$time,6). 's</div>';
     
  ?>
