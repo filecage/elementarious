@@ -27,17 +27,18 @@
          */
         'html_doctype' => '<!DOCTYPE html>',  // The doctype to send on top of the document 
         'html_markupextension_enabled' => true, // Allow markupextensions
-        'html_markupextension_standalone' => array('link','meta','img','input','br'), // All markup elements which can end by a simple /> (standalone). Markupextensions don't need to be added as they will be ended by Extension::endTag
+        'html_markupextension_standalone' => array('link','meta','img','input','br','hr','list_select'), // All markup elements which can end by a simple /> (standalone). Markupextensions don't need to be added as they will be ended by Extension::endTag
         
         /**
          * Compression
          */
         'compression_enable_gzip' => true, // Whether to enable gzip compression or not
-        
+
         /**
-         * Language settings
+         * Locale settings
          */
         'locale' => 'de_DE', // Which locale should be used? DateTime objects from database will be extended to use the right names; see /core/patterns/datetime_extensions.core.php
+        'date_format' => 'd. F Y', // Which standard date format should be used
         
         /**
          * Headers
@@ -81,7 +82,7 @@
         'mysql_credentials' => array(
             'server'   => 'localhost',
             'port'     => 3306,
-            'database' => 'dbeuchert',
+            'database' => '',
             'username' => 'root',
             'password' => '',
             'crypt'    => 'plain', // Which crypt method has been used for the password or credentials? Possible values are plain (uncrypted), base64, rot13, zlib
