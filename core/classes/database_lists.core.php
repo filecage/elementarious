@@ -28,26 +28,50 @@
          * getItems
          *
          * gets all items from the list
+         * does only return the complete database return
          */
         static public function getItems($list_name) {
         
             if (!$list = self::getList($list_name)) return false;
             
-            return $list->getAll($where = null, $order = array('text'=>'ASC'));
+            return $list->getAll($where = null, $order = array('is_sorted'=>'DESC','pos'=>'ASC',Option::val('locale')=>'ASC'), $limit = false, array('pos>0'=>'is_sorted'));
             
         }
+        
+        /**
+         * getItemsFormatted
+         *
+         * gets all items from the list
+         * returns an array in format $key => $val_locale_lang
+         */
+         static public function getItemsFormatted($list_name, $lang = null) {
+         
+            if (is_null($lang))
+                $lang = Option::val('locale');
+         
+            $return_array = array();
+            foreach (self::getItems($list_name) as $item) {
+                $return_array[$item['id']] = $item[$lang];
+            }
+            
+            return $return_array;
+         
+         }
         
         /**
          * getItem
          *
          * gets one item by id
          */
-        static public function getItem($list_name, $item) {
+        static public function getItem($list_name, $item, $lang = null) {
             
+            if (is_null($lang))
+                $lang = Option::val('locale');
+                
             if (!$list = self::getList($list_name)) return false;
             
             $list->get($item);
-            return $list->text;
+            return $list->$lang;
             
         }
         /**
@@ -106,8 +130,10 @@
         protected function configure() {
 
             $this->setFields(array(
-                'id'   => array('type'=>'int','readonly'=>true),
-                'text' => array('type'=>'text')
+                'id'    => array('type'=>'varchar','length'=>32,'readonly'=>true),
+                'de_de' => 'text',
+                'en_en' => 'text',
+                'pos'   => 'int'
             ));
             
         }
