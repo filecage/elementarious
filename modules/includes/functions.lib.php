@@ -96,7 +96,15 @@
      *
      * checks if text is set and not empty, if trim is set to true (default), trims before it checks
      */
-    function isText($text='', $trim=true) {
+    function isText($text='', $trim=true, $text_in_array = false) {
+    
+        if (is_array($text)&&$text_in_array) {
+            $return = true;
+            foreach ($text as $line) {
+                $return = (isText($line, $trim)) ? $return : false;
+            }
+            return $return;
+        }
     
         if (!is_string($text)) return false;
     
@@ -151,3 +159,135 @@
         return $array;
     
     }
+    
+    /**
+     * str_replace_once()
+     *
+     * replaces only the first occurrence of $needle
+     */
+    function str_replace_once($needle , $replace , $haystack){
+
+        $pos = strpos($haystack, $needle);
+        
+        if ($pos === false)
+            return $haystack;
+
+        return substr_replace($haystack, $replace, $pos, strlen($needle));
+        
+    }
+    
+    /**
+     * amount_decode()
+     *
+     * decodes a varchar value to an integer or float value, based on the locale setting
+     */
+    function amount_decode($amount) {
+    
+        if (is_float($amount)||is_int($amount))
+            return $amount;
+            
+        switch (Option::val('locale')) {
+        
+            case 'de_de':
+                return number_format(str_replace(',', '.', str_replace('.','', $amount)), 2, '.', '');
+            break;
+            case 'en_en':
+                return number_format(str_replace(',','', $amount), 2, '.', '');
+            break;
+            default:
+                return number_format(str_replace(',','', $amount), 2, '.', '');
+            
+        }
+    
+    }
+    
+    /**
+     * amount_encode()
+     *
+     * encodes an integer or float value to a varchar, based on the locale setting
+     */
+    function amount_encode($amount) {
+    
+        switch (Option::val('locale')) {
+        
+            case 'de_de':
+                return number_format($amount, 2, ',', '.');
+            break;
+            case 'en_en':
+                return number_format($amount, 2, '.', ',');
+            break;
+            default:
+                return number_format($amount, 2, '.', ',');
+        
+        }
+    
+    }
+    
+    /**
+     * array_next_key()
+     *
+     * returns the value of the element followed by $key
+     * returns the given element if the key is the last one
+     */
+    function array_next_key($array, $key) {
+    
+        $return_val = $array[$key];
+        $get_next   = false;
+        
+        foreach($array as $a_key => $val) {
+        
+            if ($get_next) {
+                $return_val = $array[$a_key];
+                break;
+            }
+        
+            if ($a_key == $key)
+                $get_next = true;
+        
+        }
+        
+        return $return_val;
+    
+    }
+    
+    
+        function hex2rgb($hex) {
+        $color = str_replace('#','',$hex);
+        $rgb = array(
+            'r' => hexdec(substr($color,0,2)),
+            'g' => hexdec(substr($color,2,2)),
+            'b' => hexdec(substr($color,4,2)));
+        return $rgb;
+    }
+    
+    /**
+     * rgb2cmyk
+     *
+     * turns a rgb value into a cmyk value
+     */
+    function rgb2cmyk($var1) {
+        if(is_array($var1)) {
+            $r = $var1['r'];
+            $g = $var1['g'];
+            $b = $var1['b'];
+        }
+        else { 
+            $r=$var1;
+            $cyan    = 255 - $r;
+            $magenta = 255 - $g;
+            $yellow  = 255 - $b;
+            $black   = min($cyan, $magenta, $yellow);
+            $cyan    = @(($cyan    - $black) / (255 - $black)) * 255;
+            $magenta = @(($magenta - $black) / (255 - $black)) * 255;
+            $yellow  = @(($yellow  - $black) / (255 - $black)) * 255;
+            return array(
+                'c' => $cyan / 255,
+                'm' => $magenta / 255,
+                'y' => $yellow / 255,
+                'k' => $black / 255
+            );
+        }
+    }
+
+    
+?>
