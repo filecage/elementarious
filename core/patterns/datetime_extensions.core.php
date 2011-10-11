@@ -19,7 +19,7 @@
      * 
      */
 
-    class DateTime_de_DE extends DateTime {
+    class DateTime_de_de extends DateTime {
     
         public function format($format) {
         
