@@ -42,11 +42,17 @@
          *
          * gets all entries from the database which are not set to be deleted or match the possible configured globalWhere-statement
          */
-        public function getAll($where = '', $order = '') {
+        public function getAll($where = '', $order = '', $limit = false, $extra_fields = array()) {
         
             $this->clearLoadedEntry();
             $fields = $this->_datamodel->getFieldNames();
             $fieldnames = '';
+            
+            foreach ($extra_fields as $name => $as) {
+            
+                $fields[] = array($as, $name);
+            
+            }
             
             foreach ($fields as $num => $name) {
             
@@ -67,15 +73,28 @@
             if ($this->_datamodel->isFrameworkValid()||$where!='') $where_str .= ' WHERE';
             if ($this->_datamodel->isFrameworkValid()) $where_str .= ' deleted = 0';
             if ($this->_datamodel->isFrameworkValid()&&$where!='') $where_str .= ' AND';
+            
             if (isText($where)) $where_str .= ' ' . $where;
             elseif (is_array($where)) {
                 $num = 0;
                 foreach ($where as $field => $value) {
                 
                     if (is_array($value)) {
-                        $method   = isset($value[1]) ? $value[1] : '=';
-                        $value    = $value[0];
-                        $unquoted = (isset($value['unquoted'])&&$value['unquoted']) ? true : false;
+                        if (isset($value['IN'])&&is_array($value['IN'])) {
+                            $method   = 'IN';
+                            $unquoted = true;
+                            $query_value = '(';
+                            foreach ($value['IN'] as $key => $val) {
+                                $query_value .= '\'' . $this->escape($val) . '\'';
+                                $query_value .= ($key+1<count($value['IN'])) ? ',' : ')';
+                            }
+                            $value = $query_value;
+                        }
+                        else {
+                            $method   = isset($value[1]) ? $value[1] : '=';
+                            $unquoted = (isset($value['unquoted'])&&$value['unquoted']) ? true : false;
+                            $value    = $this->escape($value[0]);
+                        }
                     }
                     else {
                         $method   = '=';
@@ -84,7 +103,7 @@
                     
                     if ($num > 0) $where_str .= ' AND';
                     $where_str .= ' ' . $this->escape($field) . ' ' . $method;
-                    $where_str .= ($unquoted) ? ' ' . $this->escape($value) : ' \'' . $this->escape($value) . '\'';
+                    $where_str .= ($unquoted) ? ' ' . $value : ' \'' . $this->escape($value) . '\'';
                     
                                     
                     $num++;
@@ -94,7 +113,7 @@
             
             if ($this->_datamodel->hasGlobalWhere()) {
                 if (isText($where_str)) $where_str .= ' AND';
-                $where_str .= $this->transformGlobalWhere();
+                $where_str .= $this->formGlobalWhere();
             }
             
                         
@@ -107,12 +126,22 @@
                 
                 foreach ($order as $field => $mode) {
                     if ($num>0) $query .= ' ,';
-                    $query .= ' ' . $this->escape($field) . ' ' . $this->escape($mode);
+                    $query .= ' ' . $field . ' ' . $this->escape($mode);
                 
                     $num++;
                     
                 }
             
+            }
+            
+            if ($limit !== false) {
+            
+                if (is_array($limit))
+                    $query .= ' LIMIT ' . $this->escape($limit[0]) . ' , ' . $this->escape($limit[1]);
+                    
+                else
+                    $query .= ' LIMIT 0 , ' . $this->escape($limit);
+                
             }
             
             return $this->query($query);
@@ -124,7 +153,7 @@
          *
          * gets an entry by it's primary key
          */
-        public function get($primary_key_orig, $order = '') {
+        public function get($primary_key_orig, $order = '', $ignore_global_where = false) {
         
             $this->clearLoadedEntry();
             
@@ -150,7 +179,7 @@
                 ';
                     
             if ($this->_datamodel->isFrameworkValid()) $query .= ' AND deleted = 0';
-            if ($this->_datamodel->hasGlobalWhere()) $query .= ' AND ' . $this->formGlobalWhere();
+            if ($this->_datamodel->hasGlobalWhere()&&!$ignore_global_where) $query .= ' AND ' . $this->formGlobalWhere();
             
             if (is_array($order)) {
             
@@ -168,18 +197,51 @@
             }
             
             if ($result = $this->query($query)) {
-                
+
                 foreach ($result[0] as $name => $value) {
                     $this->$name = $value;
                 }
                 
                 $this->loadedEntry = $primary_key_orig;
                 
-                return $result;
+                return $result[0];
                 
             }
             
             return false;
+        
+        }
+        
+        /**
+         * search()
+         *
+         * searches for $term in previously defined search fields
+         */
+        public function search($term) {
+        
+            $where_cond = '';
+            $term = $this->escape($term);
+            $order = array();
+        
+            foreach ($this->_datamodel->getSearchFields() as $num => $field) {
+                
+                if ($num>0)
+                    $where_cond .= ' OR';
+                
+                $where_cond .= ' ' . $field['name'] . ' LIKE \'';
+                $where_cond .= $field['method'] == 'complete' ? $term . '%' : '%' . $term . '%';
+                $where_cond .= '\'';
+                
+                $order[$field['name']] = 'ASC';
+            
+            }
+
+            $return = $this->getAll($where_cond,$order);
+            
+            if (count($return)==1)
+                $this->get($return[0][$this->_datamodel->getPrimaryKeyField()]);
+                
+            return $return;
         
         }
         
@@ -227,7 +289,7 @@
             $fields = array();
         
             if (!is_array($data)) {
-                
+
                 $fieldnames = $this->_datamodel->getFieldNames($write=true);
                 
                 foreach ($fieldnames as $num => $field) {
@@ -237,7 +299,7 @@
 
             }
             else {
-            
+
                 foreach ($data as $field => $value) {
                     if (!$this->_datamodel->isField($field)) continue;
                     $value = $this->_datamodel->convertForDb($field,$value);
@@ -257,18 +319,18 @@
             if ($update_id!==false) {
             
                 if ($this->_datamodel->isFrameworkValid()) {
-                    $fields[] = array('lastedit',date('Y-m-d H:i:s'));
+                    $fields[] = array('date_lastedit',date('Y-m-d H:i:s'));
                 }
                 
             
                 $query = 'UPDATE ' . $this->_datamodel->getTableName() . ' SET';
                 foreach ($fields as $num => $arr) {
-                    $query .= ' ' . $arr[0] . '=\'' . $arr[1].'\'';
+                    $query .= ' ' . $arr[0] . '=\'' . $arr[1] . '\'';
                     if ($num<count($fields)-1) $query .= ',';
                 }
                 
                 $query .= ' WHERE ' . $this->_datamodel->getPrimaryKeyField() . ' = \''. $this->escape($update_id) . '\'';
-                if ($this->_datamodel->hasGlobalWhere()) $query .= $this->transformGlobalWhere();
+                if ($this->_datamodel->hasGlobalWhere()) $query .= $this->formGlobalWhere();
             
             }
             
@@ -277,8 +339,8 @@
             else {
             
                 if ($this->_datamodel->isFrameworkValid()) {
-                    $fields[] = array('lastedit',date('Y-m-d H:i:s'));
-                    $fields[] = array('added',date('Y-m-d H:i:s'));
+                    $fields[] = array('date_lastedit',date('Y-m-d H:i:s'));
+                    $fields[] = array('date_added',date('Y-m-d H:i:s'));
                 }
             
                 $query = 'INSERT INTO ' . $this->_datamodel->getTableName() . ' (';
@@ -290,7 +352,7 @@
                 
                 $query .= ') VALUES(';
                 foreach ($fields as $num => $arr) {
-                    $query .= '\''.$arr[1].'\'';
+                    $query .= '\'' . $arr[1] . '\'';
                     if ($num<count($fields)-1) $query .= ',';
                 }
                 
@@ -298,7 +360,7 @@
                 
                 
             }
-            
+
             return $this->query($query);
         
         }
@@ -308,7 +370,7 @@
          *
          * inserts a new entry in the database
          */
-        public function insert($data, $load_to_cache = false) {
+        public function insert($data, $load_to_cache = true) {
         
             if ($load_to_cache === true) {
                 
@@ -397,7 +459,7 @@
             
                 while ($row = $result->fetch_assoc()) {
                     
-                    foreach ($row as $field => $value) {  
+                    foreach ($row as $field => $value) {
                         foreach ($this->_datamodel->convertFromDb($field, $value) as $key => $data) {
                             $row[$key] = $data;
                         }
@@ -405,6 +467,7 @@
                     
                     $return[] = $row;
                 }
+                
                 
                 $result->free();
                 return $return;
@@ -449,12 +512,13 @@
         }
         
         /**
-         * transformGlobalWhere()
+         * formGlobalWhere()
          *
          * reads the global-where array from the datamodel and transforms it to an escaped string
          */
-        public function transformGlobalWhere() {
+        public function formGlobalWhere() {
         
+            $where     = $this->_datamodel->getGlobalWhere();
             $where_str = '';
             $num       = 0;
             
