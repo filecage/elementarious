@@ -21,8 +21,14 @@
      
     class Markup_Extension_javascript extends Markup_Extension {
     
-        protected $_pattern = '<script type="text/javascript" src="%src%"></script>';
+        public function get($args) {
+        
+            $path = (Option::val('path')=='/') ? '' : Option::val('path');
+        
+            return '<script type="text/javascript" src="' . $path . '/' . trim($args['src'],'/') . '"></script>';
 
+        }
+        
     }
     
 ?>
