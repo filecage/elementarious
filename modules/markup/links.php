@@ -21,13 +21,13 @@
      
     class Markup_Extension_menu extends Markup_Extension {
     
-        protected $_endTag = '</a>';
+        protected $_endTag = '</a>&nbsp;';
 
         public function get($args=null) {
         
             $href = trim($args['for'],'/');
         
-            $return = '<a href="' . dirname($_SERVER['PHP_SELF']) . '/' . $href . '"';
+            $return = '<a href="' . Option::val('path') . '/' . $href . '"';
             if ('/'.$href == Option::val('page')) $return .= ' class="active"';
             elseif ($args['for'] == '/' && Option::val('page') == '/index') $return .= ' class="active"';
             
@@ -44,16 +44,26 @@
         
         public function get($args) {
         
+            if (isset($args['alone'])&&$args['alone']=='true') {
+                $args['end'] = 'true';
+                $args['start'] = 'true';
+            }
+        
             $this->_endTag = '</a>';
-            $this->_endTag .= (isset($args['end'])) ? '' : '&nbsp;';
+            $this->_endTag .= (isset($args['end'])&&$args['end']=='true') ? '' : '&nbsp;';
             
-            $tag = '&nbsp;<a href="' . dirname($_SERVER['PHP_SELF']) . '/' . $args['to'] . '"';
+            $tag = (isset($args['start'])&&$args['start']=='true') ? '' : '&nbsp;';
+            
+            $tag .= '<a href="' . Option::val('path') . '/' . $args['to'] . '"';
             
             if (isset($args['click']) && isText($args['click'])) {
                 $tag .= ' onclick="' . $args['click'].';';
-                if ($args['ret_false']) $tag .= 'return false;';
+                if (isset($args['ret_false'])&&$args['ret_false']) $tag .= 'return false;';
                 $tag .= '"';
             }
+            
+            if (isset($args['class']) && isText($args['class']))
+                $tag .= ' class="' . $args['class'].'"';
             
             
             return $tag . '>';

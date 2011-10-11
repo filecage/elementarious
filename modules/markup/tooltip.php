@@ -21,16 +21,21 @@
      
     class Markup_Extension_tooltip extends Markup_Extension {
     
-        protected $_endTag = '</div>';
+        protected $_endTag = '</div><div class="footer"></div></div>';
         #protected $_pattern = '<a href="#" id="<div class="tooltip">%';
         
         public function get($args=null) {
         
             $id = strtolower(preg_replace('/\W/u', '_', $args['short']).uniqid());
+            $href = (isset($args['href'])) ? $args['href'] : '#';
         
-            $return =  ' <a href="#" id="t_' . $id . '" class="tooltip_trigger';
+            $return = '<a href="' . Option::val('path') . '/' . $href . '" id="t_' . $id . '" class="tooltip_trigger';
             if (isset($args['noicon'])&&$args['noicon']=='true') $return .= ' noicon';
-            return $return . '">' . $args['short'] . '</a> <div class="tooltip" id="c_' . $id . '">';
+            
+            $return .= '">' . $args['short'] . '</a><div class="tooltip';
+            if (isset($args['tooltipClass'])) $return .= ' ' . $args['tooltipClass'];
+            
+            return $return . '" id="c_' . $id . '"><div class="inner">';
         
         }
         
