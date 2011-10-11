@@ -26,19 +26,22 @@
         protected $_prefixName;
         protected $_frameworkValid;
         protected $_globalWhere;
+        protected $_dateFormat;
         
         protected $_lists = array();
         protected $_fields = array();
+        protected $_searchFields = array();
         protected $_defaultValue = array();
-        protected $_allowedTypes = array('int', 'varchar', 'text', 'bool', 'date', 'datetime', 'timestamp');
+        protected $_allowedTypes = array('int', 'varchar', 'text', 'bool', 'date', 'datetime', 'timestamp', 'amount');
         protected $_fieldTypeDefaultValues = array(
             'int' 		=> 0, 
             'varchar' 	=> '',
             'text'		=> '',
             'bool'		=> false,
             'date'		=> -1,
-            'datetime'	=> 0,
-            'timestamp'	=> 0
+            'datetime'	=> -1,
+            'timestamp'	=> 0,
+            'amount'    => 0
         );
     
     
@@ -55,7 +58,8 @@
             
             $this->_prefixName = isText($this->_prefixName) ? $this->_prefixName : Option::val('mysql_table_prefix');
             $this->_frameworkValid = isset($this->_frameworkValid) ? $this->_frameworkValid : Option::val('mysql_framework_valid');
-            $this->_globalWhere = count(Option::val('mysql_globalwhere')>0&&!isset($this->_globalWhere)) ? Option::val('mysql_globalwhere') : array();
+            $this->_globalWhere = (count(Option::val('mysql_globalwhere'))>0&&!isset($this->_globalWhere)) ? Option::val('mysql_globalwhere') : $this->_globalWhere;
+            $this->_dateFormat = (isset($this->_dateFormat)) ? $this->_dateFormat : Option::val('date_format');
             
             $this->configure();
         
@@ -75,14 +79,27 @@
          */
         final protected function addField($name='', $properties) {
         
-            if (!isText($name)) $this->fieldException('no name definition given for field');
-        
-            if (!isText($properties['type'])) $this->fieldException('missing type definition');
-            elseif (!in_array($properties['type'], $this->_allowedTypes)) $this->fieldException('invalid type defined');
+            if (!isText($name))
+                $this->fieldException('no name definition given for field');
             
+            
+            // if theres no array we only got the type definition
+            if (!is_array($properties)&&isText($properties))
+                $properties = array('type'=>$properties);
+        
+        
+            // check if type is correct
+            if (!isText($properties['type']))
+                $this->fieldException('missing type definition');
+                
+            elseif (!in_array($properties['type'], $this->_allowedTypes))
+                $this->fieldException('invalid type defined');
+            
+
             if ($properties['type'] == 'varchar' && !is_int($properties['length'])) $this->fieldException('varchar field type requires length definition');
             if (!isset($properties['real_fieldname'])) $properties['real_fieldname'] = '';
-            if (!isset($properties['html_allowed'])) $properties['html_allowed'] = false;
+            if (!isset($properties['allow_html'])) $properties['allow_html'] = false;
+            if (!isset($properties['date_format'])) $properties['date_format'] = $this->_dateFormat;
         
             $this->_defaultValue[$name] = isset($properties['default']) ? $properties['default'] : $this->_fieldTypeDefaultValues[$properties['type']];
             $this->_fields[$name] = $properties;
@@ -128,10 +145,37 @@
         final protected function setFields($fields) {
         
             if (!is_array($fields)) return false;
-            if ($this->_frameworkValid) $fields = array_merge($fields, array('added'=>array('type'=>'datetime'),'lastedit'=>array('type'=>'datetime')));
+            if ($this->_frameworkValid) $fields = array_merge($fields, array('date_added'=>array('type'=>'datetime','readonly'=>true),'date_lastedit'=>array('type'=>'datetime','readonly'=>true)));
             
             foreach ($fields as $name => $properties) {
                 $this->addField($name, $properties);
+            }
+            
+            return true;
+        
+        }
+        
+        /**
+         * defineSearchFields()
+         *
+         * defines all fields to be used when calling Entity::search()
+         */
+        final protected function defineSearchFields($fields) {
+        
+            if (!is_array($fields)) return false;
+            if (count($this->_fields)<1) throw new Exception('Datamodel::defineSearchFields() called, but no field definition found. Make sure that Datamodel::setFields() or Datamodel::addField() has been called previously.');
+            
+            $this->_searchFields = array();
+            
+            foreach($fields as $name => $method) {
+                
+                $method = strtolower($method);
+            
+                if ($method!='complete'&&$method!='full')
+                    throw new Exception('Datamodel::defineSearchFields() called with unsupported search method "' . $method . '"');
+                    
+                if (isset($this->_fields[$name]))
+                    $this->_searchFields[] = array('name'=>$name,'method'=>$method);
             }
             
             return true;
@@ -148,6 +192,17 @@
         
             return $this->_prefixName . $this->_tableName;
         
+        }
+        
+        /**
+         * getSearchFields()
+         *
+         * returns the searchField array
+         */
+         public function getSearchFields() {
+         
+            return $this->_searchFields;
+            
         }
         
         /**
@@ -185,11 +240,14 @@
             switch ($properties['type']) {
             
                 case 'text':
-                    if (!isText($value) && isText($properties['default'])) die('ja, hier');#$value = $properties['default'];
+                    if (!isText($value) && isset($properties['default']) && isText($properties['default'])) $value = $properties['default'];
                     return htmlspecialchars_decode($value);
                 break;
             
                 case 'varchar':
+                    if (isset($properties['list_table'])) {
+                        if (!Lists::isListItem($properties['list_table'], $value)) return $properties['default'];
+                    }
                     $str = $value;
                     if (strlen($value) > $properties['length']) $str = substr($value,0,($properties['length']-3)).'...';
                     return htmlspecialchars_decode($str);
@@ -199,14 +257,15 @@
                 case 'timestamp':
                     if (!is_int($value)||!is_float($value)) $return = floatval($value);
                     if (isset($properties['list_table'])) {
-                        if (!Lists::isListItem($properties['list_table'], $value)) return false;
+                        if (!Lists::isListItem($properties['list_table'], $value)) return $properties['default'];
                     }
                     return $return;
                 break;
                 
                 case 'date':
                 case 'datetime':
-                    if (is_numeric($value) && $value < 0) $value = time();
+
+                    if (is_numeric($value) && $value < 0) return date('Y-m-d H:i:s');
                     
                     if ($value instanceof DateTime) {
                         return $value->format('Y-m-d H:i:s');
@@ -237,6 +296,11 @@
                 case 'bool':
                     return ($value) ? 1 : 0;
                 break;
+                case 'amount':
+                    $value = amount_decode($value);
+                    if (!is_int($value)||!is_float($value)) $value = floatval($value);
+                    return $value;
+                break;
                 
             }
             
@@ -251,32 +315,38 @@
          */
         public function convertFromDb($field, $value) {
         
-            if (!isset($this->_fields[$field])) return $value;
+            if (!isset($this->_fields[$field])) return array($field=>$value);
             $properties = $this->_fields[$field];
             
             switch ($properties['type']) {
             
                 case 'text':
-                    if ($properties['html_allowed'] !== true) $value = htmlspecialchars($value);
+                    if ($properties['allow_html'] !== true) $value = htmlspecialchars($value);
                 break;
             
                 case 'varchar':
-                    if ($properties['html_allowed'] !== true) $value = htmlspecialchars_decode($value);
+                    if (isset($properties['list_table'])) {
+                        return array($field.'_title'=>Lists::getItem($properties['list_table'],$value),$field=>$value);
+                    }
+                    if ($properties['allow_html'] !== true) $value = htmlspecialchars_decode($value);
                 break;
                 
                 case 'date':
                 case 'datetime':
-                    if (strtolower(Option::val('locale')) == 'de_de') $value = new DateTime_de_DE($value);
+                    if (strtolower(Option::val('locale')) == 'de_de') $value = new DateTime_de_de($value);
                     else $value = new DateTime($value);
-                    
+                    return array($field.'_formatted'=>$value->format($properties['date_format']),$field=>$value);
                 break;
                 
                 case 'int':
-                    if (isset($properties['list_table'])) return array($field.'_convert'=>Lists::getItem($properties['list_table'],$value),$field=>$value);
+                    if (isset($properties['list_table'])) return array($field.'_title'=>Lists::getItem($properties['list_table'],$value),$field=>$value);
                 break;
                 case 'bool':
                     if ($value == 1||$value == 'true') $value = true;
                     else $value = false;
+                break;
+                case 'amount':
+                    return array($field.'_orig'=>$value,$field=>amount_encode($value));
                 break;
                 
             }
