@@ -1,0 +1,16 @@
+<div class="full">
+    <h1>Template Syntax Error</h1>
+    <h2>An template syntax error occured while parsing your template file</h2>
+    <p>
+        <strong>Error</strong><br />
+        {$errorDesc}
+    </p>
+    <p>
+        <strong>File</strong><br />
+        {$errorFile}
+    </p>
+    <p>
+        <strong>Line</strong><br />
+        {$errorLine}
+    </p>
+</div>
