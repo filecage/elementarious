@@ -42,9 +42,9 @@
             if (!is_null($file)) $this->_targetFile = $file;
             if (!is_null($directory)) $this->_targetDirectory = $directory;
 
-            if (!is_writeable($this->_targetDirectory)) throw new Exception ('Target directory is not writeable');
+            if (!is_writeable($this->_targetDirectory)) throw new Exception ('Target directory (' . $this->_targetDirectory . ') is not writeable');
             if (!file_exists($this->_targetDirectory . $this->_targetFile)) $this->_prepareFile();
-            if (!is_writeable($this->_targetDirectory . $this->_targetFile)) throw new Exception ('Target file is not writeable');
+            if (!is_writeable($this->_targetDirectory . $this->_targetFile)) throw new Exception ('Target file (' . $this->_targetFile . ') is not writeable');
             if (!is_resource($this->_fileRes)) $this->_prepareFile();
         
         }
