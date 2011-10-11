@@ -33,6 +33,8 @@
         private $xmlArray;
         private $buffer = '';
         private $sourceFile;
+        private $sourceFilename;
+        private $layoutContentLine;
     
         public function __construct() {
         
@@ -65,7 +67,7 @@
 
             $this->domXML->loadXML($this->parseVars($this->sourceFile));
             $this->parseXMLElement($this->domXML->getElementsByTagName('*'),true);
-
+            
             $cache = new Template_Cachebuilder('.' . md5($file), CACHE_PATH . 'tpl/');
             $cache->_write(md5($this->sourceFile) . Option::val('configHash') . "\n" . $this->buffer);
 
@@ -160,7 +162,8 @@
             $tpl = preg_replace('/{\*(.*)\*}/si', '', $tpl);
             
             // if we got any literal areas, filter them, replace them with a unique string and replace them again later
-            preg_match_all('/{literal}(.*){\/literal}/i', $tpl, $literal_match);
+            preg_match_all('/{literal}(.*){\/literal}/isU', $tpl, $literal_match);
+
             foreach ($literal_match[1] as $literal_str) {
                 $id = '[literal_#'.sha1(microtime(true).$literal_str).md5(uniqid()).'/]';
                 $literal[$id] = $literal_str;
@@ -168,67 +171,67 @@
             }
             
             // find all occurencies of foreach in template and replace variable names
-            $foreach = strpos_all($tpl, '{foreach(' , false);
+            $foreach = array_reverse(strpos_all($tpl, '{foreach(' , false));
             
             foreach ($foreach as $char) {
                 $start    = strpos($tpl, '$', $char)+1;
                 $length   = strpos($tpl,' ',$start)-$start;
                 $var_name = substr($tpl, $start, $length);
                 $tpl      = substr_replace($tpl, str_replace('.','\'][\'', $var_name).'\']', $start, $length);
+                $tpl      = substr_replace($tpl, '&lt;?php if (count($vars[\''.$var_name.'\'])>0) { ?&gt;', $char, 0);
             }
 
             
             // find all occurencies of if and elseif in template and replace variable names
-            $if = array_merge(strpos_all($tpl, '{if(' , false), strpos_all($tpl, '{elseif(' , false));
-            sort($if);
-            $if = array_reverse($if);
+            preg_match_all('/{(else)?if\((.+)\)}/iU', $tpl, $match_if);
             
-            foreach ($if as $num => $char) {
+            foreach ($match_if[0] as $char) {
             
-                    unset($if[$num]);
-            
-                    $start    = strpos($tpl, '$', $char)+1;
-                    $end      = strpos($tpl, ')}', $char)+1;
-                    $length   = lowest(strpos($tpl,')',$start),strpos($tpl,' ',$start),strpos($tpl,'=',$start),strpos($tpl,'!',$start),strpos($tpl,'<',$start),strpos($tpl,'>',$start))-$start;
+                    $statement = $char;
+                    $modified_statement = $statement;
+                
+                    if (preg_match_all('/\$([a-zA-Z0-9_.]+)/', $statement, $match)) {
                     
-                    if ($start > $end) {
+                        foreach ($match[0] as $key => $var) {
                         
-                        $start    = strpos($tpl, '%', $char);
-                        $length   = lowest(strpos($tpl,')',$start),strpos($tpl,' ',$start),strpos($tpl,'=',$start),strpos($tpl,'!',$start))-$start;
-                        $orig_var = substr($tpl, $start, $length-1);
-                        $var_name = '$' . trim($orig_var,'%');
+                            $var_name = str_replace('.','\'][\'', $var);
+                            $modified_statement = str_replace_once($var, '$vars[\'' . trim($var_name,'$') . '\']', $modified_statement);
                         
-                        if (preg_match('/(\.)/', $orig_var, $match)) {
-                            $var_is_array = true;
-                            $var_name = str_replace('.', '[\'', $var_name);
                         }
-                        
-                        $var_name .= ($var_is_array) ? '\']' : '';
-                        $tpl      = substr_replace($tpl, $var_name, $start, $length);
-                        
-                        
+
                     }
-                    else {
                     
-                        $var_name = substr($tpl, $start, $length);
-                        $tpl      = substr_replace($tpl, '$vars[\''.str_replace('.','\'][\'', $var_name).'\']', $start-1, $length+1);
+                    if (preg_match_all('/\%([a-zA-Z0-9_.]+)\%/', $modified_statement, $match)) {
+                    
+                        foreach ($match[0] as $key => $var) {
+                        
+                            $var_name = strstr($var,'.')!==false ? '\']' : '';
+                            $var_name = str_replace('.','[\'',  trim($var,'%')) . $var_name;
+                            $modified_statement = str_replace($var, '$' . $var_name, $modified_statement);
+                        
+                        }
                     
                     }
+                    
+                    $tpl = str_replace($statement, $modified_statement, $tpl);
+                    
             }
-            
-            
+
             // replace foreach and if
             $tpl = str_ireplace('{if(', '&lt;?php if(', $tpl);
             $tpl = str_ireplace('{elseif(', '&lt;?php <?php%%ENDBRACKET_SINGLE%%?> elseif(', $tpl);
             $tpl = str_ireplace('{foreach($', '&lt;?php foreach($vars[\'', $tpl);
             $tpl = str_replace(')}', '){ ?&gt;', $tpl);
-            $tpl = str_replace('{else}', '&lt;?php <?php%%ENDBRACKET_SINGLE%%?> else { ?&gt;', $tpl);
+            $tpl = str_ireplace('{else}', '&lt;?php <?php%%ENDBRACKET_SINGLE%%?> else { ?&gt;', $tpl);
+            $tpl = str_ireplace('{foreachelse}', '&lt;?php <?php%%ENDBRACKET_SINGLE%%?> <?php%%ENDBRACKET_SINGLE%%?> else { ?&gt;', $tpl);
             
-            $tpl = str_replace('{/foreach}','<?php%%ENDBRACKET%%?>', $tpl);
-            $tpl = str_replace('{/if}','<?php%%ENDBRACKET%%?>', $tpl);
+            $tpl = str_ireplace('{/foreach}','<?php%%ENDBRACKET%%?><?php%%ENDBRACKET%%?>', $tpl);
+            $tpl = str_ireplace('{/foreachelse}','<?php%%ENDBRACKET%%?>', $tpl);
+            $tpl = str_ireplace('{/if}','<?php%%ENDBRACKET%%?>', $tpl);
             
             // replace all dots with a new array-level
-            preg_match_all('/{\$(.+)}/', $tpl, $array_match);
+            preg_match_all('/{\$(.+)}/U', $tpl, $array_match);
+
             foreach ($array_match as $occurence) {
                 if (is_string($occurence) && strstr($occurence, '.')===false) continue; // do not proceed if theres no dot
                 $modified_occurence = str_replace('.', '\'][\'', $occurence);
@@ -239,11 +242,11 @@
 
             foreach ($array_match[0] as $occurence) {
                 $occurence = $occurence;
-                if (is_string($occurence) && strstr($occurence, '.')===false) continue; // do not proceed if theres no dot
-                $modified_occurence = str_replace('.', '[\'', str_replace('%}','',$occurence));
+                if (is_string($occurence) && strstr($occurence, '.')===false && strstr($occurence, '\'][\'') === false) continue; // do not proceed if theres no dot
+                $modified_occurence = (strstr($occurence,'.')===false) ? str_replace('\'][\'', '[\'', str_replace('%}','',$occurence)) : str_replace('.', '[\'', str_replace('%}','',$occurence));
                 $tpl = str_replace($occurence, $modified_occurence.'\']%}', $tpl);
             }
-            
+
             // this is a foreach-variable
             $tpl = str_replace('{%', '&lt;?php echo $', $tpl);
             $tpl = str_replace('%}', '; ?&gt;', $tpl);
@@ -260,8 +263,45 @@
                 $tpl = str_replace($id, $str, $tpl);
             }
             
+            // die(str_replace('&lt;','<',str_replace('&gt;','>',$tpl))); // debug line
+            
+            $this->validatePHP($tpl);
+            
+            
             return $tpl;
             
+        }
+        
+        /**
+         * validatePHP
+         *
+         * transforms the parsed template to valid PHP and tries to execute to find possible syntax errors
+         */
+        private function validatePHP($tpl) {
+        
+            $tpl = substr($tpl,strpos($tpl,"\n"));
+            $tpl = str_replace('?&gt;', '?>', $tpl);
+            $tpl = str_replace('&lt;?php', '<?php', $tpl);
+            $tpl = str_replace('&amp;', '&', $tpl);
+            
+            // set error reporting on (if it's off, we might lose error information)
+            error_reporting(E_ALL);
+            $php = $this->callPHP(trim($tpl));
+           
+            
+            // turn it to old state after parsing template
+            if (!Option::val('debug')) error_reporting('E_NONE');
+            
+            if (!is_array($php))
+                return true;
+                
+            // if the return is an array, we got an error
+            $return = strip_tags($php[1]);
+            
+            preg_match("/syntax error, (.+) in (.+) on line (\d+)$/s", $return, $code);
+
+            throw new TemplateSyntaxError($code[1], str_replace(basename($this->sourceFilename),'<strong>'.basename($this->sourceFilename).'</strong>',$this->sourceFilename), $code[3]-$this->layoutContentLine-1);
+        
         }
         
         /**
@@ -276,11 +316,15 @@
             ob_start();
             
             // eval code
-            eval('?>' . $tpl);
+            $eval = eval('?>' . $tpl);
             
             // get content and clean output buffer
             $tpl = ob_get_contents();
             ob_end_clean();
+            
+            // if eval returns false, there is probably a syntax error
+            if ($eval === false)
+                return array(false, $tpl);
             
             return $tpl;
         
@@ -304,10 +348,19 @@
          */
         private function getFile($file) {
         
+            $this->sourceFilename = str_replace('public/../','',VIEW_PATH . Option::val('request_type') . $file . '.xml');
+        
             if (!$layout = @file_get_contents(VIEW_PATH . 'layout/' . Option::val('request_type') . '.xml')) throw new Exception('No layout for request_type "' . Option::val('request_type') . '" and request "' . $file . '" found. Create layout or change request_type');
             if (!$file   = @file_get_contents(VIEW_PATH . Option::val('request_type') . $file . '.xml')) throw new HttpError(404, $file);
             
-            return '<?xml version="1.0" encoding="utf-8"?>' . str_replace('{$__CONTENT}', str_replace('&', '&amp;', $file), str_replace('&', '&amp;', $layout)) . '';
+            foreach (explode("\n",$layout) as $num => $line) {
+                if (strstr($line, '{$__CONTENT}') !== false) {
+                    $this->layoutContentLine = $num-1;
+                    break;
+                }
+            }
+            
+            return '<?xml version="1.0" encoding="utf-8"?><template>' . "\n" . str_replace('{$__CONTENT}', str_replace('&', '&amp;', $file), str_replace('&', '&amp;', $layout)) . '</template>';
             
         }
         
