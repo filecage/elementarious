@@ -107,7 +107,7 @@
          */
         private function addUrlParameter($param) {
         
-            $_GET[] = $param;
+            $_GET[] = urldecode($param);
         
         }
         
@@ -151,8 +151,12 @@
             }
             
             foreach ($_VAR as $name => $val) {
-                $_VAR[$name] = trim($val);
+            
+                if (!is_array($val))
+                    $_VAR[$name] = trim($val);
+                    
                 if (empty($_VAR[$name])) $_VAR[$name] = (Option::val('header_enable_shortget')) ? true : null;
+                
             }
 
             return true;
