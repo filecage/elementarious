@@ -29,7 +29,7 @@
         static private function init() {
         
             self::$vars = array(
-                'path' => dirname($_SERVER['PHP_SELF']),
+                'path' => Option::val('path'),
                 'page' => Option::val('page'),
             );
             
