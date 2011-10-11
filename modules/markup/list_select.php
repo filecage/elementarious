@@ -20,6 +20,14 @@
      */
      
     class Markup_Extension_list_select extends Markup_Extension {
+    
+        private $templatevars;
+    
+        public function init() {
+        
+            $this->templatevars = Templatevars::get();
+        
+        }
 
         public function get($args=null) {
         
@@ -29,25 +37,30 @@
             if (isset($args['autoselect'])) $autoselect = $args['autoselect'];
             else $autoselect = 'post';
             
-            if (isset($args['selected'])&&is_numeric($args['selected'])&&$args['selected']>0) $selected = $args['selected'];
+            if (isset($args['selected'])) $selected = $args['selected'];
             elseif (($autoselect == 'post'||$autoselect=='both')&&isset($_POST[$args['name']])) $selected = htmlspecialchars($_POST[$args['name']]);
             elseif (($autoselect == 'get'||$autoselect=='both')&&isset($_GET[$args['name']])) $selected = htmlsepcialchars($_GET[$args['name']]);
             else $selected = null;
-            
+
             $return = '<select';
             
             if (isset($args['class'])) $return .= ' class="'.$args['class'].'"';
-            if (isset($args['name'])) $return .= ' name="'.$args['name'].'"';
+            if (isset($args['name'])) $return .= ' name="'.$args['name'].'" id="'.$args['name'].'"';
 
-            $return .= '><option value="">Bitte wählen</option><option value="">--------------------</option>';
+            $return .= (isset($args['opts_only'])&&$args['opts_only']=='true') ? '>' : '><option value="">Bitte wählen</option><option value="">--------------------</option>';
+            
+            $except = (isset($args['except'])&&substr($args['except'],0,1)=='&') ? $this->templatevars[substr($args['except'],1)] : array();
             
             $list = Lists::getItems($list_name);
             
             foreach ($list as $item) {
             
+                if (in_array($item['id'], $except))
+                    continue;
+            
                 $return .= '<option value="' . $item['id'] . '"';
                 if ($item['id']==$selected) $return .= ' selected="selected"';
-                $return .= '>' . $item['text'] . '</option>';
+                $return .= '>' . $item[Option::val('locale')] . '</option>';
             }
             
             return $return . '</select>';
