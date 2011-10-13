@@ -51,8 +51,9 @@
             $query      = array();
             $query_full = explode('?', $_SERVER['REQUEST_URI']);
             
+            $pathFromRoot = ($this->pathFromRoot == '/') ? '' : $this->pathFromRoot;
             
-            foreach (explode('/', trim(str_replace($this->pathFromRoot,'',$query_full[0]),'/')) as $level => $call) {
+            foreach (explode('/', trim(str_replace($pathFromRoot,'',$query_full[0]),'/')) as $level => $call) {
 
                 $call = trim($call);
                 
