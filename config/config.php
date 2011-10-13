@@ -37,7 +37,7 @@
         /**
          * Locale settings
          */
-        'locale' => 'de_DE', // Which locale should be used? DateTime objects from database will be extended to use the right names; see /core/patterns/datetime_extensions.core.php
+        'locale' => 'de_de', // Which locale should be used? DateTime objects from database will be extended to use the right names; see /core/patterns/datetime_extensions.core.php
         'date_format' => 'd. F Y', // Which standard date format should be used
         
         /**
