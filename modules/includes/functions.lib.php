@@ -96,7 +96,7 @@
      *
      * checks if text is set and not empty, if trim is set to true (default), trims before it checks
      */
-    function isText($text='', $trim=true, $text_in_array = false) {
+    function isText($text='', $trim=true, $text_in_array=false) {
     
         if (is_array($text)&&$text_in_array) {
             $return = true;
@@ -208,6 +208,9 @@
      */
     function amount_encode($amount) {
     
+        if (!is_int($amount)&&!is_float($amount))
+            $amount = (float)$amount;
+    
         switch (Option::val('locale')) {
         
             case 'de_de':
@@ -250,8 +253,12 @@
     
     }
     
-    
-        function hex2rgb($hex) {
+    /**
+     * hex2rgb()
+     *
+     * returns an assoziative array (r,g,b) based on the hex value
+     */
+    function hex2rgb($hex) {
         $color = str_replace('#','',$hex);
         $rgb = array(
             'r' => hexdec(substr($color,0,2)),
