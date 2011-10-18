@@ -413,16 +413,17 @@
          * delete()
          *
          * deletes the current checked-out entry or the one given by $id
-         * does a real delete if table construct isn't framwork valid, otherwise it sets deleted to true.
+         * does a real delete if table construct isn't framwork valid or $hard is set to true,
+         * otherwise it sets deleted to true.
          */
-        public function delete($id=false) {
+        public function delete($id=false, $hard=false) {
         
             if (!$id) $id = $this->loadedEntry;
             if (!$id) return false;
             
             if ($id == $this->loadedEntry) $this->clearLoadedEntry();
             
-            if ($this->_datamodel->isFrameworkValid()) $query = 'UPDATE ' . $this->_datamodel->getTableName() . ' SET deleted = 1';
+            if ($this->_datamodel->isFrameworkValid()&&$hard!=true) $query = 'UPDATE ' . $this->_datamodel->getTableName() . ' SET deleted = 1';
             else $query = 'DELETE FROM ' . $this->_datamodel->getTableName();
             
             $query .= ' WHERE';
