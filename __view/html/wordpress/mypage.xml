@@ -1,0 +1,11 @@
+{* This is the first method, using the Controller::setAll() method *}
+<h1>{$title}</h1>
+<p>
+    {$content}
+</p>
+
+{* And heres the second method, using Controller::set() and setting the whole return of Entity::get() *}
+<h1>{$page.post_title}</h1>
+<p>
+    {$page.post_content}
+</p>
