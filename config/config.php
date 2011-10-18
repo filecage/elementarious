@@ -67,13 +67,13 @@
         
         /**
          * MySQL configuration
-         * (changes will ONLY work for elementarious' entity system!)
+         * (changes will ONLY work for elementarious' ORM!)
          */
         'mysql_allow' => true, // Whether to enable MySQL or not (if set to true, connection will be established automatically; if set to false, an exception will be thrown if a script calls the database)
         /*****************************************
         * IMPORTANT NOTE:
         * The option above will NOT ensure that there is NEVER a MySQL request.
-        * If mysql_allow is set to false, this only disables the framework-intern entity system!
+        * If mysql_allow is set to false, this only disables the framework-intern ORM!
         *****************************************/
         
         'mysql_table_prefix' => '', // The global prefix to use for database requests; can be set manually in the datamodel object (leave empty to disable)
