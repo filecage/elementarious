@@ -43,6 +43,7 @@
     require_once(INCLUDE_PATH . 'functions.lib.php');
     
     // go trough some options which may be turned on (or off)
+    if (Option::val('locale')=='de_de') setlocale(LC_ALL, 'de_DE');
     if (Option::val('compression_enable_gzip')) ob_start('ob_gzhandler');
     if (Option::val('header_send_utf8')) Header('Content-type: text/html;charset=utf-8;');
     if (Option::val('header_allow_crossdomain_xhr')) Header('Access-Control-Allow-Origin: *');
