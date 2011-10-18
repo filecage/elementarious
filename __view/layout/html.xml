@@ -1,4 +1,7 @@
 <html>
+    <head>
+        <title>{if(isset($_pageTitle))}{$_pageTitle} | {/if}Standard Page Title</title>
+    </head>
     <body>
         {$__CONTENT}
     </body>
