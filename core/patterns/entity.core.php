@@ -121,6 +121,11 @@
             
             if (is_array($order)) {
             
+                if (count($order) == 2) {
+                    if (!is_array($order[0])&&!is_array($order[1]))
+                        $order = array($order[0] => $order[1]);
+                }
+            
                 $query .= ' ORDER BY';
                 $num    = 0;
                 
