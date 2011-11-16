@@ -96,7 +96,7 @@
      *
      * checks if text is set and not empty, if trim is set to true (default), trims before it checks
      */
-    function isText($text='', $trim=true, $text_in_array=false) {
+    function isText($text='', $trim=true, $text_in_array = false) {
     
         if (is_array($text)&&$text_in_array) {
             $return = true;
@@ -208,9 +208,6 @@
      */
     function amount_encode($amount) {
     
-        if (!is_int($amount)&&!is_float($amount))
-            $amount = (float)$amount;
-    
         switch (Option::val('locale')) {
         
             case 'de_de':
@@ -253,12 +250,8 @@
     
     }
     
-    /**
-     * hex2rgb()
-     *
-     * returns an assoziative array (r,g,b) based on the hex value
-     */
-    function hex2rgb($hex) {
+    
+        function hex2rgb($hex) {
         $color = str_replace('#','',$hex);
         $rgb = array(
             'r' => hexdec(substr($color,0,2)),
@@ -294,6 +287,36 @@
                 'k' => $black / 255
             );
         }
+    }
+    
+    /**
+     * sortArrayByValue
+     *
+     * sorts an array with multiple arrays as elements by the given element
+     * of the arrays
+     */
+    function sortArrayByValue($arrays, $field, $keepKeys=false) {
+    
+        $sort   = array();
+        $return = array();
+        
+        foreach ($arrays as $key => $array) {
+            $sort[$key] = $array[$field];
+        }
+        
+        asort($sort);
+        
+        foreach ($sort as $key => $val) {
+            
+            if ($keepKeys)
+                $return[$key] = $arrays[$key];
+            else
+                $return[] = $arrays[$key];
+                
+        }
+        
+        return $return;
+
     }
 
     
