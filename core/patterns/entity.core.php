@@ -76,36 +76,28 @@
             
             if (isText($where)) $where_str .= ' ' . $where;
             elseif (is_array($where)) {
+            
                 $num = 0;
                 foreach ($where as $field => $value) {
                 
-                    if (is_array($value)) {
-                        if (isset($value['IN'])&&is_array($value['IN'])) {
-                            $method   = 'IN';
-                            $unquoted = true;
-                            $query_value = '(';
-                            foreach ($value['IN'] as $key => $val) {
-                                $query_value .= '\'' . $this->escape($val) . '\'';
-                                $query_value .= ($key+1<count($value['IN'])) ? ',' : ')';
-                            }
-                            $value = $query_value;
-                        }
-                        else {
-                            $method   = isset($value[1]) ? $value[1] : '=';
-                            $unquoted = (isset($value['unquoted'])&&$value['unquoted']) ? true : false;
-                            $value    = $this->escape($value[0]);
-                        }
-                    }
-                    else {
-                        $method   = '=';
-                        $unquoted = false;
-                    }
-                    
                     if ($num > 0) $where_str .= ' AND';
-                    $where_str .= ' ' . $this->escape($field) . ' ' . $method;
-                    $where_str .= ($unquoted) ? ' ' . $value : ' \'' . $this->escape($value) . '\'';
                     
-                                    
+                    if (is_array($value)&&is_array($value[0])&&is_array($value[1])) {
+                    
+                        $subnum = 0;
+                        
+                        foreach ($value as $subvalue) {
+                        
+                            if ($subnum > 0)
+                                $where_str .= ' AND';
+                                
+                            $where_str .= $this->formWhere($field, $subvalue);
+                            $subnum++;
+                        }
+                    }
+                    else
+                        $where_str .= $this->formWhere($field, $value);
+        
                     $num++;
 
                 }
@@ -283,6 +275,47 @@
             }
             
         }
+        
+        
+        /**
+         * formWhere()
+         *
+         * converts an array into a MySQL-query string
+         */
+        public function formWhere($field, $value) {
+        
+            $where_str = '';
+        
+            if (is_array($value)) {
+                if (isset($value['IN'])&&is_array($value['IN'])) {
+                    $method   = 'IN';
+                    $unquoted = true;
+                    $query_value = '(';
+                    foreach ($value['IN'] as $key => $val) {
+                        $query_value .= '\'' . $this->escape($val) . '\'';
+                        $query_value .= ($key+1<count($value['IN'])) ? ',' : ')';
+                    }
+                    $value = $query_value;
+                }
+                else {
+                    $method   = isset($value[1]) ? $value[1] : '=';
+                    $unquoted = (isset($value['unquoted'])&&$value['unquoted']) ? true : false;
+                    $value    = $this->escape($value[0]);
+                }
+            }
+            else {
+                $method   = '=';
+                $unquoted = false;
+            }
+            
+
+            $where_str .= ' ' . $this->escape($field) . ' ' . $method;
+            $where_str .= ($unquoted) ? ' ' . $value : ' \'' . $this->escape($value) . '\'';
+            
+            return $where_str;
+            
+        }
+        
         
         /**
          * save()
