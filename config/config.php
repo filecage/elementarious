@@ -39,6 +39,7 @@
          */
         'locale' => 'de_de', // Which locale should be used? DateTime objects from database will be extended to use the right names; see /core/patterns/datetime_extensions.core.php
         'date_format' => 'd. F Y', // Which standard date format should be used
+        'timezone' => 'Europe/Berlin', // Default timezone to use for extended DateTime objects
         
         /**
          * Headers

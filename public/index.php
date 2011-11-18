@@ -54,6 +54,7 @@
     else Option::set('mysql_credentials',null,true);
     $path = str_replace('\\', '/', dirname($_SERVER['PHP_SELF']));
     Option::set('path', $path == '/' ? '' : $path);
+    ini_set('date.timezone', Option::val('timezone'));
     
     
     // start trying to create the site
