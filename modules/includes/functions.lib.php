@@ -183,6 +183,13 @@
      */
     function amount_decode($amount) {
     
+        if (is_array($amount)) {
+            foreach ($amount as $key => $_amount) {
+                $amount[$key] = amount_decode($_amount);
+            }
+            return $amount;
+        }
+    
         if (is_float($amount)||is_int($amount))
             return $amount;
             
@@ -207,6 +214,13 @@
      * encodes an integer or float value to a varchar, based on the locale setting
      */
     function amount_encode($amount) {
+    
+        if (is_array($amount)) {
+            foreach ($amount as $key => $_amount) {
+                $amount[$key] = amount_encode($_amount);
+            }
+            return $amount;
+        }
     
         switch (Option::val('locale')) {
         
