@@ -4,6 +4,11 @@
 | The license below is only valid for the elementarious PHP framework. |
 | Custom created features or web projects are probably licensed under  |
 | a contract between the developer and the customer.                   |
+|                                                                      |
+| To see whether a file is part of the elementarious PHP framework or  |
+| not, open the file and check if theres a notice telling you whether  |
+| this file is part of elementarious or not. If it is, there should be |
+| another notice, saying that this file is licensed under the GNU GPL. |
 |======================================================================|
 
 
