@@ -32,7 +32,7 @@
         protected $_fields = array();
         protected $_searchFields = array();
         protected $_defaultValue = array();
-        protected $_allowedTypes = array('int', 'varchar', 'text', 'bool', 'date', 'datetime', 'timestamp', 'amount');
+        protected $_allowedTypes = array('int', 'varchar', 'text', 'bool', 'date', 'datetime', 'timestamp', 'amount', 'array');
         protected $_fieldTypeDefaultValues = array(
             'int' 		=> 0, 
             'varchar' 	=> '',
@@ -41,7 +41,8 @@
             'date'		=> -1,
             'datetime'	=> -1,
             'timestamp'	=> 0,
-            'amount'    => 0
+            'amount'    => 0,
+            'array'     => array(),
         );
     
     
@@ -239,6 +240,10 @@
             
             switch ($properties['type']) {
             
+            
+                case 'array':
+                    return json_encode($value);
+            
                 case 'text':
                     if (!isText($value) && isset($properties['default']) && isText($properties['default'])) $value = $properties['default'];
                     return htmlspecialchars_decode($value);
@@ -319,6 +324,9 @@
             $properties = $this->_fields[$field];
             
             switch ($properties['type']) {
+            
+                case 'array':
+                    $value = json_decode($value,true);
             
                 case 'text':
                     if ($properties['allow_html'] !== true) $value = htmlspecialchars($value);
