@@ -243,6 +243,7 @@
             
                 case 'array':
                     return json_encode($value);
+                break;
             
                 case 'text':
                     if (!isText($value) && isset($properties['default']) && isText($properties['default'])) $value = $properties['default'];
@@ -327,6 +328,7 @@
             
                 case 'array':
                     $value = json_decode($value,true);
+                break;
             
                 case 'text':
                     if ($properties['allow_html'] !== true) $value = htmlspecialchars($value);
