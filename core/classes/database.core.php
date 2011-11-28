@@ -35,6 +35,9 @@
             $credentials = Option::val('mysql_credentials');
             Option::set('mysql_credentials',null,true);
             
+            if (!isText($credentials['username'])&&!isText($credentials['database']))
+                return true;
+            
             self::$db   = new mysqli($credentials['server'], $credentials['username'], $credentials['password'], $credentials['database']);
             self::$init = true;
 
