@@ -84,7 +84,7 @@
             'server'   => 'localhost',
             'port'     => 3306,
             'database' => '',
-            'username' => 'root',
+            'username' => '',
             'password' => '',
             'crypt'    => 'plain', // Which crypt method has been used for the password or credentials? Possible values are plain (uncrypted), base64, rot13, zlib
             'file'     => '' // You can define a file where the full credentials are safed; however, if this option is enabled (value not empty), this will disable the credentials above and require that username and password are saved in one line, separated by a semicolon, crypted by the method defined in crypt.
