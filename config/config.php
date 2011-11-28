@@ -92,5 +92,14 @@
         ),
         
         'mysql_globalwhere' => array(), // set an array of where-statements which will always have to match for every select/update request that is made through the entity system. Can be manually disabled in a datamodel by setting Datamodel::$_globalWhere to false.
+    
+        /**
+         * Mail configuration
+         */
+        'mail_allow' => true, // Whether to enable the framework-mailsystem or not
+        'mail_sender_address' => '', // Default sender email address to use when sending emails (can be set manually by calling Mail::setSenderAddress)
+        'mail_sender_name' => '', // Default sender name to use when sending emails (can be set manually by calling Mail::setSenderName) (is not required to send mails)
         
     );
+    
+?>

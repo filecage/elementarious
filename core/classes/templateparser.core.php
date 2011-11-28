@@ -31,10 +31,11 @@
         private $xml;
         private $domXML;
         private $xmlArray;
-        private $buffer = '';
-        private $sourceFile;
-        private $sourceFilename;
-        private $layoutContentLine;
+        protected $buffer = '';
+        protected $sourceFile;
+        protected $sourceFilename;
+        protected $layoutContentLine;
+        protected $useXML = true;
     
         public function __construct() {
         
@@ -52,7 +53,7 @@
         public function get($file) {
         
             if (!Option::val('request_type')) throw new Exception('Templateparser called to parse a document before the queryparser worked.');
-            $this->sourceFile = $this->getFile($file);
+            $this->sourceFile = $this->getFile($file, Option::val('request_type'));
             
             if (!$this->parseCachedFile($file)) $this->parse($file);
             return (Option::val('request_type')=='html') ? $this->callPHP(Option::val('html_doctype') . $this->buffer) : $this->callPHP($this->buffer);
@@ -63,13 +64,12 @@
          * ::parse()
          * manages the parse-proccess, i.e. creating an xml object and parsing it
          */
-        public function parse($file) {
+        protected function parse($file) {
 
             $this->domXML->loadXML($this->parseVars($this->sourceFile));
             $this->parseXMLElement($this->domXML->getElementsByTagName('*'),true);
             
-            $cache = new Template_Cachebuilder('.' . md5($file), CACHE_PATH . 'tpl/');
-            $cache->_write(md5($this->sourceFile) . Option::val('configHash') . "\n" . $this->buffer);
+            $this->cache();
 
         }
         
@@ -78,7 +78,7 @@
          * extends ::parseXMLObject()
          * required for recursive parsing
          */
-        private function parseXMLElement($nodelist,$first=false) {
+        protected function parseXMLElement($nodelist,$first=false) {
         
             foreach ($nodelist as $item) {
                 
@@ -153,7 +153,7 @@
          * ::parseVars()
          * gets the templatevars and parses all ifs, loops and other variables and replaces them to get parsed by PHP itself
          */
-        private function parseVars($tpl) {
+        protected function parseVars($tpl) {
 
             $continue = false;
             $literal  = array();
@@ -277,7 +277,7 @@
          *
          * transforms the parsed template to valid PHP and tries to execute to find possible syntax errors
          */
-        private function validatePHP($tpl) {
+        protected function validatePHP($tpl) {
         
             $tpl = substr($tpl,strpos($tpl,"\n"));
             $tpl = str_replace('?&gt;', '?>', $tpl);
@@ -308,9 +308,16 @@
          * ::callPHP
          * calls PHP and sends the template to parse it
          */
-        private function callPHP($tpl) {
+        protected function callPHP($tpl) {
         
-            $vars = Templatevars::get();
+            if (!$this->useXML) {
+                $tpl = substr($tpl,strpos($tpl,"\n"));
+                $tpl = str_replace('?&gt;', '?>', $tpl);
+                $tpl = str_replace('&lt;?php', '<?php', $tpl);
+                $tpl = str_replace('&amp;', '&', $tpl);
+            }
+        
+            $vars = $this->getVars();
         
             // start output (eval writes directly in the output buffer)
             ob_start();
@@ -331,10 +338,19 @@
         }
         
         /**
+         * getVars()
+         *
+         * returns the current templatevars
+         */
+        protected function getVars() {
+            return Templatevars::get();
+        }
+        
+        /**
          * ::writeToBuffer()
          * writes the parsed HTML from the XML template to the buffer
          */
-        private function writeToBuffer($text) {
+        protected function writeToBuffer($text) {
         
             $text = trim($text);
             if (!empty($text)) $this->buffer .= str_replace('&nbsp;', ' ', str_replace("\n",'',$text));
@@ -346,13 +362,13 @@
          * reads the file from the correct directory (depending on REQUEST_TYPE)
          * also adds the XML-intro tag to the file
          */
-        private function getFile($file) {
+        protected function getFile($file,$request_type='html') {
         
-            $this->sourceFilename = str_replace('public/../','',VIEW_PATH . Option::val('request_type') . $file . '.xml');
-        
-            if (!$layout = @file_get_contents(VIEW_PATH . 'layout/' . Option::val('request_type') . '.xml')) throw new Exception('No layout for request_type "' . Option::val('request_type') . '" and request "' . $file . '" found. Create layout or change request_type');
-            if (!$file   = @file_get_contents(VIEW_PATH . Option::val('request_type') . $file . '.xml')) throw new HttpError(404, $file);
-            
+            $this->sourceFilename = str_replace('public/../','',VIEW_PATH . $request_type . $file . '.xml');
+
+            if (!$layout = @file_get_contents(VIEW_PATH . 'layout/' . $request_type . '.xml')) throw new Exception('No layout for request_type "' . $request_type . '" and request "' . $file . '" found. Create layout or change request_type');
+            if (!$file   = @file_get_contents(VIEW_PATH . $request_type . $file . '.xml')) throw new HttpError(404, $file);
+
             foreach (explode("\n",$layout) as $num => $line) {
                 if (strstr($line, '{$__CONTENT}') !== false) {
                     $this->layoutContentLine = $num-1;
@@ -360,7 +376,8 @@
                 }
             }
             
-            return '<?xml version="1.0" encoding="utf-8"?><template>' . "\n" . str_replace('{$__CONTENT}', str_replace('&', '&amp;', $file), str_replace('&', '&amp;', $layout)) . '</template>';
+            return ($this->useXML) ? '<?xml version="1.0" encoding="utf-8"?><template>' . "\n" . str_replace('{$__CONTENT}', str_replace('&', '&amp;', $file), str_replace('&', '&amp;', $layout)) . '</template>'
+                            : str_replace('{$__CONTENT}', $file, $layout);
             
         }
         
@@ -368,7 +385,7 @@
          * ::parseCachedFile()
          * gets a cached template file from the cache, checks if it's the latest version and if yes it calls PHP and writes it's output to the buffer
          */
-        private function parseCachedFile($file) {
+        protected function parseCachedFile($file) {
 
             $content = $this->getCachedFile($file);
             if (!$content) return false;
@@ -387,7 +404,7 @@
          * ::getCachedFile()
          * reads a cached template file and returns the actual hash and the file
          */
-        private function getCachedFile($file) {
+        protected function getCachedFile($file) {
         
             $file = CACHE_PATH . 'tpl/.' . md5($file);
             if (!file_exists($file)) return false;
@@ -398,11 +415,23 @@
         }
         
         /**
+         * cache()
+         *
+         * saves the current buffer to a cachefile
+         */
+        protected function cache() {
+        
+            $cache = new Template_Cachebuilder('.' . md5($this->sourceFilename), CACHE_PATH . 'tpl/');
+            $cache->_write(md5($this->sourceFile) . Option::val('configHash') . "\n" . $this->buffer);
+            
+        }
+        
+        /**
          * ::noChildNodes()
          * checks if an element may have child nodes or not
          * important, because otherwise empty divs (e.g. <div class="space"></div>) would be written as <div/>
          */
-        private function noChildNodes($item) {
+        protected function noChildNodes($item) {
         
             return in_array($item->nodeName, Option::val('html_markupextension_standalone'));
         
