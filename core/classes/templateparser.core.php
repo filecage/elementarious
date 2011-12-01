@@ -241,9 +241,11 @@
             preg_match_all('/{\%([^%]+)\%}/', $tpl, $array_match);
 
             foreach ($array_match[0] as $occurence) {
-                $occurence = $occurence;
                 if (is_string($occurence) && strstr($occurence, '.')===false && strstr($occurence, '\'][\'') === false) continue; // do not proceed if theres no dot
-                $modified_occurence = (strstr($occurence,'.')===false) ? str_replace('\'][\'', '[\'', str_replace('%}','',$occurence)) : str_replace('.', '[\'', str_replace('%}','',$occurence));
+                $modified_occurence = (strstr($occurence,'.')===false)
+                                        ? str_replace_once('\'][\'', '[\'', str_replace('%}','',$occurence))
+                                        : str_replace('.','\'][\'',str_replace_once('.', '[\'', str_replace('%}','',$occurence)));
+                                        
                 $tpl = str_replace($occurence, $modified_occurence.'\']%}', $tpl);
             }
 
