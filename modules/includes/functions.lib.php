@@ -332,6 +332,25 @@
         return $return;
 
     }
+	
+    /**
+     * implodeRecursive
+     *
+     * implodes an array recursive
+     */
+    function implodeRecursive($glue, $array) {
+
+        $str = '';
+        foreach ($array as $element) {
+            if (is_array($element))
+                $str .= implodeRecursive($glue, $element);
+            else
+                $str .= $element . $glue;
+        }
+        
+        return $str;
+
+    }
 
     
 ?>
